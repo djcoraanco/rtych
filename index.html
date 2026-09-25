@@ -46,6 +46,8 @@
     />
 
     <link rel="preload" href="img/Devices-marketing-foto4.jpg" as="image" />
+    <link rel="icon" href="img/ico.png" type="image/png" />
+    <link rel="apple-touch-icon" href="img/ico.png" />
 
     <style>
       :root {
@@ -878,7 +880,15 @@
     <header class="site-nav">
       <div class="wrap nav-row">
         <a class="brand" href="#top" aria-label="READTYCH home">
-          <img src="img/logo.png" alt="READTYCH" width="140" height="28" />
+          <img
+            src="img/logo.png"
+            alt="READTYCH"
+            width="140"
+            height="28"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+          />
         </a>
         <nav class="primary-links" aria-label="Primary">
           <a href="#product">Product</a>
@@ -929,8 +939,9 @@
               alt="Student reading a lesson on the READTYCH screen"
               width="400"
               height="300"
-              loading="lazy"
+              loading="eager"
               decoding="async"
+              fetchpriority="high"
             />
           </div>
         </div>
@@ -1349,7 +1360,14 @@
     <footer class="site-footer">
       <div class="wrap footer-row">
         <div class="footer-brand">
-          <img src="img/Logo.png" alt="READTYCH" width="120" height="24" />
+          <img
+            src="img/logo.png"
+            alt="READTYCH"
+            width="120"
+            height="24"
+            loading="lazy"
+            decoding="async"
+          />
           <span class="footer-tagline">Unfolding the Future of Education.</span>
         </div>
         <p class="footer-meta">
