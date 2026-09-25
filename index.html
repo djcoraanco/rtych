@@ -324,23 +324,31 @@
       .btn-ghost:hover {
         border-color: rgba(255, 255, 255, 0.28);
       }
-      /* Keep space when empty but hide visuals to avoid drawing attention */
       .form-msg {
-        visibility: hidden;
-        min-height: 1.2em;
-        margin-top: 0.5rem;
-      }
-      .form-msg:not(:empty) {
-        visibility: visible;
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        color: var(--pink);
         font-size: 0.95rem;
+        margin-top: 0.5rem;
+        transition: background .18s ease, border-color .18s ease, padding .12s ease;
+      }
+      /* When empty, keep the element in DOM but make it visually transparent */
+      .form-msg:empty {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        min-height: 0;
+        margin-top: 0;
+        color: transparent;
+      }
+      /* Visible styling only when there's content */
+      .form-msg:not(:empty) {
+        color: var(--pink);
         padding: 0.45rem 0.6rem;
         border-radius: 8px;
         border: 1px solid rgba(230, 2, 126, 0.12);
         background: rgba(230, 2, 126, 0.03);
+        min-height: 1.2em;
       }
       .form-msg:not(:empty)::before {
         content: '⚠';
