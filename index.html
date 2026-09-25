@@ -735,6 +735,12 @@
         gap: 1rem;
         flex-wrap: wrap;
       }
+      .form-msg {
+        color: var(--pink);
+        font-size: 0.95rem;
+        margin-top: 0.5rem;
+        min-height: 1.2em;
+      }
 
       /* ---------- Footer ---------- */
       footer.site-footer {
@@ -1357,6 +1363,7 @@
                 Send Inquiry
               </button>
             </div>
+            <div id="form_msg" class="form-msg" aria-live="polite"></div>
           </form>
         </div>
       </section>
@@ -1438,10 +1445,34 @@
         }
 
         form.addEventListener("submit", function (e) {
-          // basic anti-bot checks
-          if (isBotSubmission()) {
+          const formMsg = document.getElementById("form_msg");
+
+          // Honeypot check
+          const hp = form.querySelector("#hp_website");
+          if (hp && hp.value && hp.value.trim().length > 0) {
             e.preventDefault();
-            // silently fail for bots
+            console.log("Form submission blocked: honeypot filled");
+            if (formMsg) {
+              formMsg.textContent = "Submission blocked (suspected bot).";
+              setTimeout(() => {
+                formMsg.textContent = "";
+              }, 5000);
+            }
+            return;
+          }
+
+          // Timing check
+          const started = parseInt(tsField.value || "0", 10);
+          if (isNaN(started) || Date.now() - started < MIN_DELAY_MS) {
+            e.preventDefault();
+            console.log("Form submission blocked: submitted too quickly");
+            if (formMsg) {
+              formMsg.textContent =
+                "Please wait a few seconds before submitting.";
+              setTimeout(() => {
+                formMsg.textContent = "";
+              }, 4000);
+            }
             return;
           }
 
@@ -1449,6 +1480,10 @@
           const email = form.querySelector('input[type="email"]');
           if (email && (!email.value || email.value.indexOf("@") === -1)) {
             e.preventDefault();
+            console.log("Form submission blocked: invalid email");
+            if (formMsg) {
+              formMsg.textContent = "Please enter a valid email address.";
+            }
             email.focus();
             return;
           }
