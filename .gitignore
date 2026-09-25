@@ -1,0 +1,11 @@
+# Node / common
+node_modules/
+dist/
+build/
+
+# VS Code
+.vscode/
+
+# System
+.DS_Store
+Thumbs.db
