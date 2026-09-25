@@ -324,38 +324,25 @@
       .btn-ghost:hover {
         border-color: rgba(255, 255, 255, 0.28);
       }
-      .form-msg {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.95rem;
-        margin-top: 0.5rem;
-        transition: background .18s ease, border-color .18s ease, padding .12s ease;
+      .btn-sm {
+        padding: 0.55rem 1.1rem;
+        font-size: 0.82rem;
       }
-      /* When empty, keep the element in DOM but make it visually transparent */
-      .form-msg:empty {
-        padding: 0;
-        border: 0;
-        background: transparent;
-        min-height: 0;
-        margin-top: 0;
-        color: transparent;
+
+      /* ---------- Section scaffolding ---------- */
+      section {
+        position: relative;
+        padding-block: clamp(4rem, 9vw, 7rem);
       }
-      /* Visible styling only when there's content */
-      .form-msg:not(:empty) {
-        color: var(--pink);
-        padding: 0.45rem 0.6rem;
-        border-radius: 8px;
-        border: 1px solid rgba(230, 2, 126, 0.12);
-        background: rgba(230, 2, 126, 0.03);
-        min-height: 1.2em;
+      section + section {
+        border-top: 1px solid var(--surface-border);
       }
-      .form-msg:not(:empty)::before {
-        content: '⚠';
-        font-size: 0.98rem;
-        line-height: 1;
-        opacity: 0.95;
-      }
+
+      .section-label {
+        display: inline-block;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
         color: var(--cyan);
         margin-bottom: 1rem;
