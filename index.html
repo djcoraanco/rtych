@@ -324,41 +324,28 @@
       .btn-ghost:hover {
         border-color: rgba(255, 255, 255, 0.28);
       }
-      /* hide when empty to avoid visible placeholder */
-      .form-msg:empty {
-        display: none;
-        padding: 0;
-        margin-top: 0;
-        border: none;
-        min-height: 0;
+      .btn-sm {
+        padding: 0.55rem 1.1rem;
+        font-size: 0.82rem;
       }
-      .form-msg {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: var(--pink);
-        font-size: 0.95rem;
-        margin-top: 0.5rem;
-        min-height: 1.2em;
-        padding: 0.45rem 0.6rem;
-        border-radius: 8px;
-        border: 1px solid rgba(230, 2, 126, 0.12);
-        background: rgba(230, 2, 126, 0.03);
+
+      /* ---------- Section scaffolding ---------- */
+      section {
+        position: relative;
+        padding-block: clamp(4rem, 9vw, 7rem);
       }
-      .form-msg:not(:empty)::before {
-        content: "⚠";
-        font-size: 0.98rem;
-        line-height: 1;
-        opacity: 0.95;
+      section + section {
+        border-top: 1px solid var(--surface-border);
       }
+
       .section-label {
         display: inline-block;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
         color: var(--cyan);
         margin-bottom: 1rem;
-        font-weight: 700;
-        letter-spacing: 0.12em;
-        font-size: 0.78rem;
       }
       .section-title {
         font-size: clamp(1.7rem, 3.6vw, 2.5rem);
@@ -756,7 +743,7 @@
         border: 1px solid rgba(230, 2, 126, 0.12);
         background: rgba(230, 2, 126, 0.03);
       }
-      .form-msg::before {
+      .form-msg:not(:empty)::before {
         content: "⚠";
         font-size: 0.98rem;
         line-height: 1;
