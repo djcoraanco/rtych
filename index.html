@@ -48,6 +48,12 @@
     <link rel="preload" href="img/Devices-marketing-foto4.jpg" as="image" />
     <link rel="icon" href="img/ico.png" type="image/png" />
     <link rel="apple-touch-icon" href="img/ico.png" />
+    <!-- Google reCAPTCHA v3 (client-side) -->
+    <script
+      src="https://www.google.com/recaptcha/api.js?render=6LeeK88tAAAAAGRlpoNNmV4Uy5v-OhDBTa6pYbyd"
+      async
+      defer
+    ></script>
 
     <style>
       :root {
@@ -1372,5 +1378,40 @@
         </p>
       </div>
     </footer>
+    <!-- reCAPTCHA v3: obtain token on submit and include as hidden field -->
+    <script>
+      (function () {
+        const SITE_KEY = "6LeeK88tAAAAAGRlpoNNmV4Uy5v-OhDBTa6pYbyd";
+        const form = document.querySelector("form.inquiry-form");
+        if (!form || typeof grecaptcha === "undefined") return;
+
+        // ensure a hidden field exists to send the token
+        let tokenField = form.querySelector(
+          'input[name="g-recaptcha-response"]',
+        );
+        if (!tokenField) {
+          tokenField = document.createElement("input");
+          tokenField.type = "hidden";
+          tokenField.name = "g-recaptcha-response";
+          form.appendChild(tokenField);
+        }
+
+        // Intercept submit to fetch token first
+        form.addEventListener("submit", function (e) {
+          // If token already present and non-empty, allow submit
+          if (tokenField.value && tokenField.value.length > 0) return;
+          e.preventDefault();
+          grecaptcha.ready(function () {
+            grecaptcha
+              .execute(SITE_KEY, { action: "inquiry" })
+              .then(function (token) {
+                tokenField.value = token;
+                // Submit the form after attaching token
+                form.submit();
+              });
+          });
+        });
+      })();
+    </script>
   </body>
 </html>
