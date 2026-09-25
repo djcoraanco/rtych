@@ -324,21 +324,23 @@
       .btn-ghost:hover {
         border-color: rgba(255, 255, 255, 0.28);
       }
+      /* Keep space when empty but hide visuals to avoid drawing attention */
       .form-msg {
+        visibility: hidden;
+        min-height: 1.2em;
+        margin-top: 0.5rem;
+      }
+      .form-msg:not(:empty) {
+        visibility: visible;
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
         color: var(--pink);
         font-size: 0.95rem;
-        margin-top: 0.5rem;
-        min-height: 1.2em;
         padding: 0.45rem 0.6rem;
         border-radius: 8px;
         border: 1px solid rgba(230, 2, 126, 0.12);
         background: rgba(230, 2, 126, 0.03);
-      }
-      .form-msg:empty {
-        display: none;
       }
       .form-msg:not(:empty)::before {
         content: '⚠';
