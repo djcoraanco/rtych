@@ -1271,6 +1271,8 @@
               tabindex="-1"
               autocomplete="off"
             />
+            <input type="hidden" name="form_ts" id="form_ts" value="" />
+            <input type="hidden" name="js_enabled" id="js_enabled" value="0" />
             <div class="field">
               <label for="firstName"
                 >First Name <span class="req">*</span></label
@@ -1351,7 +1353,7 @@
               about your inquiry using the information you provide.
             </p>
             <div class="form-submit-row">
-              <button type="submit" class="btn btn-primary">
+              <button type="submit" class="btn btn-primary" disabled>
                 Send Inquiry
               </button>
             </div>
@@ -1378,14 +1380,34 @@
         </p>
       </div>
     </footer>
-    <!-- reCAPTCHA v3: obtain token on submit and include as hidden field -->
+    <!-- Anti-bot + reCAPTCHA handling: enable form with JS, check honeypot and timing, then obtain token if available -->
     <script>
       (function () {
         const SITE_KEY = "6LeeK88tAAAAAGRlpoNNmV4Uy5v-OhDBTa6pYbyd";
+        const MIN_DELAY_MS = 3000; // require users to wait at least 3s before submit
         const form = document.querySelector("form.inquiry-form");
-        if (!form || typeof grecaptcha === "undefined") return;
+        if (!form) return;
 
-        // ensure a hidden field exists to send the token
+        // ensure hidden anti-bot fields exist
+        let tsField = form.querySelector("#form_ts");
+        if (!tsField) {
+          tsField = document.createElement("input");
+          tsField.type = "hidden";
+          tsField.name = "form_ts";
+          tsField.id = "form_ts";
+          tsField.value = "";
+          form.appendChild(tsField);
+        }
+        let jsField = form.querySelector("#js_enabled");
+        if (!jsField) {
+          jsField = document.createElement("input");
+          jsField.type = "hidden";
+          jsField.name = "js_enabled";
+          jsField.id = "js_enabled";
+          jsField.value = "0";
+          form.appendChild(jsField);
+        }
+        // ensure token field exists for reCAPTCHA
         let tokenField = form.querySelector(
           'input[name="g-recaptcha-response"]',
         );
@@ -1396,20 +1418,55 @@
           form.appendChild(tokenField);
         }
 
-        // Intercept submit to fetch token first
+        // Enable submit once JS runs and record timestamp
+        document.addEventListener("DOMContentLoaded", function () {
+          tsField.value = Date.now();
+          jsField.value = "1";
+          const btn = form.querySelector('[type="submit"]');
+          if (btn) {
+            btn.disabled = false;
+          }
+        });
+
+        function isBotSubmission() {
+          const hp = form.querySelector("#hp_website");
+          if (hp && hp.value && hp.value.trim().length > 0) return true;
+          const started = parseInt(tsField.value || "0", 10);
+          if (isNaN(started)) return true;
+          if (Date.now() - started < MIN_DELAY_MS) return true;
+          return false;
+        }
+
         form.addEventListener("submit", function (e) {
-          // If token already present and non-empty, allow submit
-          if (tokenField.value && tokenField.value.length > 0) return;
-          e.preventDefault();
-          grecaptcha.ready(function () {
-            grecaptcha
-              .execute(SITE_KEY, { action: "inquiry" })
-              .then(function (token) {
-                tokenField.value = token;
-                // Submit the form after attaching token
-                form.submit();
-              });
-          });
+          // basic anti-bot checks
+          if (isBotSubmission()) {
+            e.preventDefault();
+            // silently fail for bots
+            return;
+          }
+
+          // basic client-side validation (email contains @) to reduce junk
+          const email = form.querySelector('input[type="email"]');
+          if (email && (!email.value || email.value.indexOf("@") === -1)) {
+            e.preventDefault();
+            email.focus();
+            return;
+          }
+
+          // If reCAPTCHA available, fetch token first
+          if (typeof grecaptcha !== "undefined" && grecaptcha && SITE_KEY) {
+            e.preventDefault();
+            grecaptcha.ready(function () {
+              grecaptcha
+                .execute(SITE_KEY, { action: "inquiry" })
+                .then(function (token) {
+                  tokenField.value = token;
+                  form.submit();
+                });
+            });
+            return;
+          }
+          // otherwise allow normal submit
         });
       })();
     </script>
