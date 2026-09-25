@@ -48,12 +48,7 @@
     <link rel="preload" href="img/Devices-marketing-foto4.jpg" as="image" />
     <link rel="icon" href="img/ico.png" type="image/png" />
     <link rel="apple-touch-icon" href="img/ico.png" />
-    <!-- Google reCAPTCHA v3 (client-side) -->
-    <script
-      src="https://www.google.com/recaptcha/api.js?render=6LeeK88tAAAAAGRlpoNNmV4Uy5v-OhDBTa6pYbyd"
-      async
-      defer
-    ></script>
+    <!-- Google reCAPTCHA v3 will be lazy-loaded on user interaction -->
 
     <style>
       :root {
@@ -1392,6 +1387,8 @@
       (function () {
         const SITE_KEY = "6LeeK88tAAAAAGRlpoNNmV4Uy5v-OhDBTa6pYbyd";
         const MIN_DELAY_MS = 3000; // require users to wait at least 3s before submit
+        const RECAPTCHA_TOKEN_TTL = 90 * 1000; // reuse token for 90s
+        const RECAPTCHA_LOAD_TIMEOUT = 3000; // ms to wait for library load
         const form = document.querySelector("form.inquiry-form");
         if (!form) return;
 
@@ -1425,6 +1422,88 @@
           form.appendChild(tokenField);
         }
 
+        // recaptcha token cache
+        let _rcToken = null;
+        let _rcTokenTs = 0;
+
+        function loadRecaptchaLibrary() {
+          return new Promise((resolve, reject) => {
+            if (typeof grecaptcha !== "undefined" && grecaptcha)
+              return resolve();
+            if (document.querySelector("script[data-rc=1]")) {
+              const start = Date.now();
+              const iv = setInterval(() => {
+                if (typeof grecaptcha !== "undefined" && grecaptcha) {
+                  clearInterval(iv);
+                  return resolve();
+                }
+                if (Date.now() - start > RECAPTCHA_LOAD_TIMEOUT) {
+                  clearInterval(iv);
+                  return reject(new Error("reCAPTCHA load timeout"));
+                }
+              }, 150);
+              return;
+            }
+
+            const s = document.createElement("script");
+            s.setAttribute("data-rc", "1");
+            s.src =
+              "https://www.google.com/recaptcha/api.js?render=" +
+              encodeURIComponent(SITE_KEY);
+            s.async = true;
+            s.defer = true;
+            s.onload = () => {
+              setTimeout(() => {
+                if (typeof grecaptcha !== "undefined" && grecaptcha)
+                  return resolve();
+                reject(new Error("grecaptcha missing after load"));
+              }, 80);
+            };
+            s.onerror = () => reject(new Error("Failed to load reCAPTCHA"));
+            document.head.appendChild(s);
+          });
+        }
+
+        function getRecaptchaToken() {
+          return new Promise((resolve, reject) => {
+            if (!SITE_KEY) return resolve("");
+            if (_rcToken && Date.now() - _rcTokenTs < RECAPTCHA_TOKEN_TTL) {
+              return resolve(_rcToken);
+            }
+            loadRecaptchaLibrary()
+              .then(() => {
+                try {
+                  grecaptcha.ready(function () {
+                    grecaptcha
+                      .execute(SITE_KEY, { action: "inquiry" })
+                      .then(function (token) {
+                        _rcToken = token;
+                        _rcTokenTs = Date.now();
+                        resolve(token);
+                      }, reject);
+                  });
+                } catch (err) {
+                  reject(err);
+                }
+              })
+              .catch(reject);
+          });
+        }
+
+        // lazy-load recaptcha when user interacts with the form (focus/hover)
+        const lazyTriggers = ["focusin", "mouseenter", "touchstart"];
+        const lazyListener = () => {
+          loadRecaptchaLibrary().catch(() => {
+            /* silent */
+          });
+          lazyTriggers.forEach((ev) =>
+            form.removeEventListener(ev, lazyListener),
+          );
+        };
+        lazyTriggers.forEach((ev) =>
+          form.addEventListener(ev, lazyListener, { passive: true }),
+        );
+
         // Enable submit once JS runs and record timestamp
         document.addEventListener("DOMContentLoaded", function () {
           tsField.value = Date.now();
@@ -1435,17 +1514,9 @@
           }
         });
 
-        function isBotSubmission() {
-          const hp = form.querySelector("#hp_website");
-          if (hp && hp.value && hp.value.trim().length > 0) return true;
-          const started = parseInt(tsField.value || "0", 10);
-          if (isNaN(started)) return true;
-          if (Date.now() - started < MIN_DELAY_MS) return true;
-          return false;
-        }
-
         form.addEventListener("submit", function (e) {
           const formMsg = document.getElementById("form_msg");
+          const submitBtn = form.querySelector('[type="submit"]');
 
           // Honeypot check
           const hp = form.querySelector("#hp_website");
@@ -1488,17 +1559,58 @@
             return;
           }
 
-          // If reCAPTCHA available, fetch token first
-          if (typeof grecaptcha !== "undefined" && grecaptcha && SITE_KEY) {
+          // If SITE_KEY present, try to get token but do not block indefinitely
+          if (SITE_KEY) {
             e.preventDefault();
-            grecaptcha.ready(function () {
-              grecaptcha
-                .execute(SITE_KEY, { action: "inquiry" })
-                .then(function (token) {
-                  tokenField.value = token;
+            if (submitBtn) {
+              submitBtn.disabled = true;
+              submitBtn.setAttribute("aria-busy", "true");
+              const oldText = submitBtn.textContent;
+              submitBtn.textContent = "Sending...";
+              if (formMsg)
+                formMsg.textContent = "Contactando servidor de verificación...";
+
+              // try to get token with a timeout fallback
+              const timeout = new Promise((res, rej) =>
+                setTimeout(
+                  () => rej(new Error("recaptcha timeout")),
+                  RECAPTCHA_LOAD_TIMEOUT,
+                ),
+              );
+              Promise.race([getRecaptchaToken(), timeout])
+                .then((token) => {
+                  if (token) tokenField.value = token;
                   form.submit();
+                })
+                .catch((err) => {
+                  console.warn("reCAPTCHA token unavailable:", err);
+                  if (formMsg)
+                    formMsg.textContent =
+                      "No se pudo verificar reCAPTCHA; enviando de todas formas.";
+                  form.submit();
+                })
+                .finally(() => {
+                  try {
+                    if (submitBtn) {
+                      submitBtn.disabled = false;
+                      submitBtn.removeAttribute("aria-busy");
+                      submitBtn.textContent =
+                        submitBtn.textContent === "Sending..."
+                          ? oldText
+                          : submitBtn.textContent;
+                    }
+                  } catch (e) {
+                    /* noop */
+                  }
                 });
-            });
+            } else {
+              getRecaptchaToken()
+                .then((token) => {
+                  if (token) tokenField.value = token;
+                  form.submit();
+                })
+                .catch(() => form.submit());
+            }
             return;
           }
           // otherwise allow normal submit
